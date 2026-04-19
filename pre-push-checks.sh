@@ -125,7 +125,7 @@ for ENTRY in "${FRAMEWORKS[@]}"; do
     echo -e "${GREEN}✅ ${FW^^} is clean and passing.${NC}"
 done
 
-echo -e "\n${GREEN}⭐ Completed relevant framework checks!${NC}"
+echo -e "\n${GREEN}✅ Completed relevant framework checks!${NC}"
 
 
 # ─── 5. Docker files check ──────────────────────────────────────
@@ -145,11 +145,7 @@ MISSING_DOCKER=0
     fi
 
     echo -e "${GREEN}✅ ${FW^^} is ready for push.${NC}"
-done
-
-echo -e "\n${GREEN}⭐ All detected frameworks passed validation!${NC}"
-
-
+    done
 
 
 # ─── All checks passed ──────────────────────────────────────────
