@@ -1,0 +1,26 @@
+#!/bin/sh
+
+# ═══════════════════════════════════════════════════════════════
+# hooks/pre-push
+# Git hook — triggered automatically on: git push
+# Responsibility: call pre-push-checks.sh and block push if it fails
+# ═══════════════════════════════════════════════════════════════
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+CHECKS_SCRIPT="$REPO_ROOT/pre-push-checks.sh"
+
+# ─── Guard: pre-push-checks.sh must exist ───────────────────────
+if [ ! -f "$CHECKS_SCRIPT" ]; then
+  echo "🚫 pre-push-checks.sh not found at $REPO_ROOT"
+  echo "   Cannot proceed with push. Please restore the file."
+  exit 1
+fi
+
+# ─── Run the guardrail script ────────────────────────────────────
+if ! bash "$CHECKS_SCRIPT"; then
+  echo ""
+  echo "🚫 Push blocked. Resolve the issues above and try again."
+  exit 1
+fi
+
+exit 0

@@ -1,7 +1,19 @@
+# ═══════════════════════════════════════════════════════════════
+# PHONY Targets (Ensures commands run even if a folder exists)
+# ═══════════════════════════════════════════════════════════════
+.PHONY: all print-env help install-misc build-tools verify-install \
+        docker-install docker-login build-image run-container \
+        push-images pull-images docker-exec docker-clean \
+        validate-all ui-check ui-install ui-dev ui-build ui-lint ui-test ui-clean
 
-.PHONY: all print-env help install-misc build-tools verify-install\
-		# Docker Targets
-		docker-install docker-login build-image run-container push-images pull-images docker-exec docker-clean
+# ═══════════════════════════════════════════════════════════════
+# Settings & Paths
+# ═══════════════════════════════════════════════════════════════
+
+UI_SPRING_DIR  := $(shell pwd)/src/ui
+# Future paths:
+# ORDERS_DIR   := $(shell pwd)/src/orders
+# CART_DIR     := $(shell pwd)/src/cart
 
 # Colors for output
 YELLOW := \033[0;33m
@@ -9,20 +21,28 @@ GREEN  := \033[0;32m
 RED    := \033[0;31m
 NC     := \033[0m
 
-# Load .env file if it exists
+# Load .env file
 ifneq (,$(wildcard .env))
     include .env
     export $(shell sed 's/=.*//' .env)
 endif
 
 # Variables
-CURRENT_USER := $(shell whoami)
-DOCKER_REPO := ${DOCKER_REPO}
-IMAGE_NAME := ${IMAGE_NAME}
+CURRENT_USER   := $(shell whoami)
+DOCKER_REPO    := ${DOCKER_REPO}
+IMAGE_NAME     := ${IMAGE_NAME}
 CONTAINER_NAME := ${CONTAINER_NAME}
-TAG_VERSION := ${TAG_VERSION}
-HOST_PORTS := ${HOST_PORTS}
+TAG_VERSION    := ${TAG_VERSION}
+HOST_PORTS     := ${HOST_PORTS}
 CONTAINER_PORT := ${CONTAINER_PORT}
+
+# ═══════════════════════════════════════════════════════════════
+# Global Validation (The "Master Switch")
+# ═══════════════════════════════════════════════════════════════
+
+validate-all: ui-check ## Run checks for ALL frameworks (Add orders-check etc. here later)
+	@echo "$(GREEN)⭐ [SUCCESS] All frameworks passed all checks.$(NC)"
+
 
 # ═══════════════════════════════════════════════════════════════
 # Print Environment Variables (for debugging)
@@ -135,3 +155,40 @@ docker-clean: ## Stop Container && Remove Image
 	@echo "Removing Image from Local Host /var/lib/docker/image"
 	@docker rmi ${IMAGE_NAME}:${TAG_VERSION}
 	@echo "$(GREEN)✅ Docker cleanup complete$(NC)"
+
+
+# ═══════════════════════════════════════════════════════════════
+# Spring Boot Backend 
+# ═══════════════════════════════════════════════════════════════
+
+ui-install: ## Install Maven dependencies
+	@echo "Installing Maven dependencies...[1/6]"
+	cd $(UI_SPRING_DIR) && ./mvnw dependency:resolve
+	@echo "$(GREEN)✅ Dependencies installed$(NC)"
+
+ui-dev: ## Run Spring Boot in development mode
+	@echo "Starting Spring Boot server...[2/6]"
+	cd $(UI_SPRING_DIR) && ./mvnw spring-boot:run
+
+ui-build: ## Build the application JAR
+	@echo "Building Backend application...[3/6]"
+	cd $(UI_SPRING_DIR) && ./mvnw clean package -DskipTests
+	@echo "$(GREEN)✅ Build complete — output in target/$(NC)"
+
+ui-lint: ## Run Checkstyle linter
+	@echo "Running Checkstyle...[4/6]"
+	cd $(UI_SPRING_DIR) && ./mvnw checkstyle:check || (echo "$(RED)🚫 Checkstyle failed.$(NC)" && exit 1)
+	@echo "$(GREEN)✅ Linting complete$(NC)"
+
+ui-test: ## Run Spring Boot unit tests
+	@echo "Running Backend tests...[5/6]"
+	cd $(UI_SPRING_DIR) && ./mvnw test || (echo "$(RED)🚫 Tests failed.$(NC)" && exit 1)
+	@echo "$(GREEN)✅ Tests complete$(NC)"
+
+ui-check: ui-lint ui-test ## Run all Backend checks
+	@echo "$(GREEN)✅ All backend checks passed$(NC)"
+
+ui-clean: ## Remove Backend build artifacts
+	@echo "Cleaning Backend...[6/6]"
+	cd $(UI_SPRING_DIR) && ./mvnw clean
+	@echo "✅ Clean complete"
