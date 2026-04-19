@@ -129,7 +129,8 @@ echo -e "\n${GREEN}✅ Completed relevant framework checks!${NC}"
 
 
 # ─── 5. Docker files check ──────────────────────────────────────
-MISSING_DOCKER=0
+echo -e "Checking Docker configuration..."
+    MISSING_DOCKER=0
     for FILE in "Dockerfile" "docker-compose.yml" ".dockerignore"; do
         if [ ! -f "$DIR/$FILE" ]; then
             echo -e "${RED}      ❌ Missing: $DIR/$FILE${NC}"
@@ -141,11 +142,11 @@ MISSING_DOCKER=0
         echo -e "${RED}   🚫 Docker validation failed for ${FW^^}.${NC}"
         exit 1
     else
-        echo -e "${GREEN}   ✅ All Docker files present.${NC}"
+        echo -e "${GREEN}   ✅ All Docker files present for ${FW^^}.${NC}"
     fi
 
     echo -e "${GREEN}✅ ${FW^^} is ready for push.${NC}"
-    done
+done 
 
 
 # ─── All checks passed ──────────────────────────────────────────
