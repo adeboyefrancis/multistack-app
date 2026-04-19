@@ -129,14 +129,19 @@ echo -e "\n${GREEN}⭐ Completed relevant framework checks!${NC}"
 
 
 # ─── 5. Docker files check ──────────────────────────────────────
-echo -e "\n${YELLOW}[5/5] Checking for Docker files...${NC}"
+if [ -f "$DIR/Dockerfile" ] && [ -f "docker-compose.yml" ] && [ -f ".dockerignore" ]; then
+        echo -e "${GREEN}   ✅ Docker files present for ${FW^^}.${NC}"
+    else
+        echo -e "${RED}   🚫 Docker files missing!${NC}"
+        echo -e "      Required: $DIR/Dockerfile, ./docker-compose.yml, ./.dockerignore"
+        exit 1
+    fi
 
-if [ -f "Dockerfile" ] && [ -f "docker-compose.yml" ] && [ -f ".dockerignore" ]; then
-  echo -e "${GREEN}✅ All Docker files present.${NC}"
-else
-  echo -e "${RED}🚫 Docker files missing. Please ensure Dockerfile, docker-compose.yml and .dockerignore exist.${NC}"
-  exit 1
-fi
+    echo -e "${GREEN}✅ ${FW^^} validation complete.${NC}"
+done
+
+echo -e "\n${GREEN}⭐ All present frameworks are healthy and Docker-ready!${NC}"
+Key Changes Made:
 
 
 
