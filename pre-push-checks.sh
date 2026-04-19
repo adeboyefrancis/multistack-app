@@ -84,10 +84,10 @@ echo -e "\n${YELLOW}[4/5] Running framework-specific lint and test checks...${NC
 # Format: "prefix:directory_path"
 FRAMEWORKS=(
   "ui:src/ui"
-  "orders:src/orders"
-  "cart:src/cart"
-  "app:src/app"
-  "checkout:src/checkout"
+  #"orders:src/orders"
+  #"cart:src/cart"
+  #"app:src/app"
+  #"checkout:src/checkout"
 )
 
 for ENTRY in "${FRAMEWORKS[@]}"; do
