@@ -80,30 +80,52 @@ fi
 # ─── 4. Dynamic Framework Checks ───────────────────────────────
 echo -e "\n${YELLOW}[4/5] Running framework-specific lint and test checks...${NC}"
 
-# List of your frameworks as defined in the Makefile prefixes
-FRAMEWORKS=("ui" "orders" "cart" "app" "checkout")
+# Define a mapping of prefix to directory
+# Format: "prefix:directory_path"
+FRAMEWORKS=(
+  "ui:src/ui"
+  "orders:src/orders"
+  "cart:src/cart"
+  "app:src/app"
+  "checkout:src/checkout"
+)
 
-for FW in "${FRAMEWORKS[@]}"; do
-    echo -e "\n${YELLOW}🔍 Checking Framework: ${FW^^}${NC}" # ^^ converts to uppercase
+for ENTRY in "${FRAMEWORKS[@]}"; do
+    FW="${ENTRY%%:*}"
+    DIR="${ENTRY##*:}"
+
+    # 1. First, check if the directory exists
+    if [ ! -d "$DIR" ]; then
+        # Skip silently or echo a skip message if you prefer
+        continue
+    fi
+
+    # 2. Second, check if the Makefile target exists to avoid crashes
+    if ! grep -q "^${FW}-lint:" Makefile; then
+        echo -e "${YELLOW}⏩ Skipping ${FW^^}: Directory exists but Makefile target is missing.${NC}"
+        continue
+    fi
+
+    echo -e "\n${YELLOW}🔍 Checking Framework: ${FW^^}${NC}" 
     
-    # 1. Run Lint
+    # Run Lint
     echo -e "   Checking Linter..."
     if ! make "${FW}-lint"; then
-        echo -e "${RED}🚫 ${FW^^} Linting failed! Check style violations.${NC}"
+        echo -e "${RED}🚫 ${FW^^} Linting failed!${NC}"
         exit 1
     fi
 
-    # 2. Run Tests
+    # Run Tests
     echo -e "   Running Unit Tests..."
     if ! make "${FW}-test"; then
-        echo -e "${RED}🚫 ${FW^^} Tests failed! Fix code before pushing.${NC}"
+        echo -e "${RED}🚫 ${FW^^} Tests failed!${NC}"
         exit 1
     fi
 
     echo -e "${GREEN}✅ ${FW^^} is clean and passing.${NC}"
 done
 
-echo -e "\n${GREEN}⭐ All frameworks passed all checks!${NC}"
+echo -e "\n${GREEN}⭐ Completed relevant framework checks!${NC}"
 
 
 # ─── 5. Docker files check ──────────────────────────────────────
