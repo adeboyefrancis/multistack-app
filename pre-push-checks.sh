@@ -129,7 +129,7 @@ echo -e "\n${GREEN}⭐ Completed relevant framework checks!${NC}"
 
 
 # ─── 5. Docker files check ──────────────────────────────────────
-if [ -f "$DIR/Dockerfile" ] && [ -f "docker-compose.yml" ] && [ -f ".dockerignore" ]; then
+if [ -f "$DIR/*Dockerfile" ] && [ -f "*.yml" ] && [ -f "*.dockerignore" ]; then
         echo -e "${GREEN}   ✅ Docker files present for ${FW^^}.${NC}"
     else
         echo -e "${RED}   🚫 Docker files missing!${NC}"
