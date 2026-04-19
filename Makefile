@@ -1,19 +1,19 @@
-
-.PHONY: all print-env help install-misc build-tools verify-install\
-		# Docker Targets
-		docker-install docker-login build-image run-container push-images pull-images docker-exec docker-clean
-
-		
+# ═══════════════════════════════════════════════════════════════
+# PHONY Targets (Ensures commands run even if a folder exists)
+# ═══════════════════════════════════════════════════════════════
+.PHONY: all print-env help install-misc build-tools verify-install \
+        docker-install docker-login build-image run-container \
+        push-images pull-images docker-exec docker-clean \
+        validate-all ui-check ui-install ui-dev ui-build ui-lint ui-test ui-clean
 
 # ═══════════════════════════════════════════════════════════════
 # Settings & Paths
 # ═══════════════════════════════════════════════════════════════
 
-# Parent folder is React, backend is a subfolder
 UI_SPRING_DIR  := $(shell pwd)/src/ui
-
-
-
+# Future paths:
+# ORDERS_DIR   := $(shell pwd)/src/orders
+# CART_DIR     := $(shell pwd)/src/cart
 
 # Colors for output
 YELLOW := \033[0;33m
@@ -21,20 +21,28 @@ GREEN  := \033[0;32m
 RED    := \033[0;31m
 NC     := \033[0m
 
-# Load .env file if it exists
+# Load .env file
 ifneq (,$(wildcard .env))
     include .env
     export $(shell sed 's/=.*//' .env)
 endif
 
 # Variables
-CURRENT_USER := $(shell whoami)
-DOCKER_REPO := ${DOCKER_REPO}
-IMAGE_NAME := ${IMAGE_NAME}
+CURRENT_USER   := $(shell whoami)
+DOCKER_REPO    := ${DOCKER_REPO}
+IMAGE_NAME     := ${IMAGE_NAME}
 CONTAINER_NAME := ${CONTAINER_NAME}
-TAG_VERSION := ${TAG_VERSION}
-HOST_PORTS := ${HOST_PORTS}
+TAG_VERSION    := ${TAG_VERSION}
+HOST_PORTS     := ${HOST_PORTS}
 CONTAINER_PORT := ${CONTAINER_PORT}
+
+# ═══════════════════════════════════════════════════════════════
+# Global Validation (The "Master Switch")
+# ═══════════════════════════════════════════════════════════════
+
+validate-all: ui-check ## Run checks for ALL frameworks (Add orders-check etc. here later)
+	@echo "$(GREEN)⭐ [SUCCESS] All frameworks passed all checks.$(NC)"
+
 
 # ═══════════════════════════════════════════════════════════════
 # Print Environment Variables (for debugging)
