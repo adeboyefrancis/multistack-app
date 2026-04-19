@@ -15,7 +15,7 @@ BLUE='\033[0;34m'
 NC='\033[0m'
 
 echo -e "${BLUE}=======================================================================${NC}"
-echo -e "${BLUE}  🔎 Pre-Push Guardrail Checks${NC}"
+echo -e "${BLUE}   🔎 Pre-Push Guardrail Checks${NC}"
 echo -e "${BLUE}=======================================================================${NC}"
 
 # ─── 1. Block pushes to main branch ─────────────────────────────
@@ -81,7 +81,6 @@ fi
 echo -e "\n${YELLOW}[4/5] Running framework-specific lint and test checks...${NC}"
 
 # Define a mapping of prefix to directory
-# Format: "prefix:directory_path"
 FRAMEWORKS=(
   "ui:src/ui"
   #"orders:src/orders"
@@ -96,7 +95,6 @@ for ENTRY in "${FRAMEWORKS[@]}"; do
 
     # 1. First, check if the directory exists
     if [ ! -d "$DIR" ]; then
-        # Skip silently or echo a skip message if you prefer
         continue
     fi
 
@@ -123,13 +121,9 @@ for ENTRY in "${FRAMEWORKS[@]}"; do
     fi
 
     echo -e "${GREEN}✅ ${FW^^} is clean and passing.${NC}"
-done
 
-echo -e "\n${GREEN}✅ Completed relevant framework checks!${NC}"
-
-
-# ─── 5. Docker files check ──────────────────────────────────────
-echo -e "Checking Docker configuration..."
+    # ─── 5. Docker files check ──────────────────────────────────────
+    echo -e "   Checking Docker configuration for ${FW^^}..."
     MISSING_DOCKER=0
     for FILE in "Dockerfile" "docker-compose.yml" ".dockerignore"; do
         if [ ! -f "$DIR/$FILE" ]; then
@@ -147,7 +141,6 @@ echo -e "Checking Docker configuration..."
 
     echo -e "${GREEN}✅ ${FW^^} is ready for push.${NC}"
 done 
-
 
 # ─── All checks passed ──────────────────────────────────────────
 echo -e "\n${BLUE}=======================================================================${NC}"
