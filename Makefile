@@ -121,7 +121,7 @@ docker-login: ## Docker Login
 
 build-image: ## Build Docker image locally
 	@echo "Build Docker New docker Image locally...."
-	@docker build --build-arg GEMINI_API_KEY=${VITE_GEMINI_API_KEY} -t ${IMAGE_NAME}:${TAG_VERSION} .
+	@docker build -t ${IMAGE_NAME}:${TAG_VERSION} $(UI_SPRING_DIR)
 
 run-container: ## Run Image as a Container
 	@echo "Running Container using built image...."
