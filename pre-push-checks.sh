@@ -77,7 +77,7 @@ else
   echo -e "${YELLOW}⚠️  No recognised runtime indicator found. Skipping version check.${NC}"
 fi
 
-# ─── 4. Dynamic Framework Checks ───────────────────────────────
+# ─── 4. Dynamic Framework Lint * Test Checks ───────────────────────────────
 echo -e "\n${YELLOW}[4/5] Running framework-specific lint and test checks...${NC}"
 
 # Define a mapping of prefix to directory
@@ -129,18 +129,25 @@ echo -e "\n${GREEN}⭐ Completed relevant framework checks!${NC}"
 
 
 # ─── 5. Docker files check ──────────────────────────────────────
-if [ -f "$DIR/Dockerfile" ] && [ -f "docker-compose.yml" ] && [ -f ".dockerignore" ]; then
-        echo -e "${GREEN}   ✅ Docker files present for ${FW^^}.${NC}"
-    else
-        echo -e "${RED}   🚫 Docker files missing for ${FW^^}!${NC}"
-        
-        # Diagnostic: Tell the user exactly which one is missing
-        [ ! -f "$DIR/Dockerfile" ] && echo -e "      ❌ Missing: $DIR/Dockerfile"
-        [ ! -f "docker-compose.yml" ] && echo -e "      ❌ Missing: ./docker-compose.yml"
-        [ ! -f ".dockerignore" ]      && echo -e "      ❌ Missing: ./.dockerignore"
-        
+MISSING_DOCKER=0
+    for FILE in "Dockerfile" "docker-compose.yml" ".dockerignore"; do
+        if [ ! -f "$DIR/$FILE" ]; then
+            echo -e "${RED}      ❌ Missing: $DIR/$FILE${NC}"
+            MISSING_DOCKER=1
+        fi
+    done
+
+    if [ $MISSING_DOCKER -eq 1 ]; then
+        echo -e "${RED}   🚫 Docker validation failed for ${FW^^}.${NC}"
         exit 1
+    else
+        echo -e "${GREEN}   ✅ All Docker files present.${NC}"
     fi
+
+    echo -e "${GREEN}✅ ${FW^^} is ready for push.${NC}"
+done
+
+echo -e "\n${GREEN}⭐ All detected frameworks passed validation!${NC}"
 
 
 
