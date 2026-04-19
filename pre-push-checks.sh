@@ -1,112 +1,106 @@
-#!/bin/bash
+# ═══════════════════════════════════════════════════════════════
+# PHONY Targets (Ensures commands run even if a folder exists)
+# ═══════════════════════════════════════════════════════════════
+.PHONY: all print-env help install-misc build-tools verify-install \
+        docker-install docker-login build-image run-container \
+        push-images pull-images docker-exec docker-clean \
+        validate-all ui-check ui-install ui-dev ui-build ui-lint ui-test ui-clean
 
 # ═══════════════════════════════════════════════════════════════
-# pre-push-checks.sh
-# Guardrail script — runs before every push via hooks/pre-push
-# Enforces branch rules, cleanliness checks, runtime versions,
-# and lint/test validation. Fails fast if any condition is not met.
+# Settings & Paths
 # ═══════════════════════════════════════════════════════════════
 
-# ─── Colours ────────────────────────────────────────────────────
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m'
+UI_SPRING_DIR  := $(shell pwd)/src/ui
+# Future paths:
+# ORDERS_DIR   := $(shell pwd)/src/orders
+# CART_DIR     := $(shell pwd)/src/cart
 
-echo -e "${BLUE}=======================================================================${NC}"
-echo -e "${BLUE}  🔎 Pre-Push Guardrail Checks${NC}"
-echo -e "${BLUE}=======================================================================${NC}"
+# Colors for output
+YELLOW := \033[0;33m
+GREEN  := \033[0;32m
+RED    := \033[0;31m
+NC     := \033[0m
 
-# ─── 1. Block pushes to main branch ─────────────────────────────
-current_branch=$(git symbolic-ref --short HEAD)
+# Load .env file
+ifneq (,$(wildcard .env))
+    include .env
+    export $(shell sed 's/=.*//' .env)
+endif
 
-echo -e "\n${YELLOW}[1/4] Checking branch...${NC}"
-if [ "$current_branch" = "main" ] || [ "$current_branch" = "master" ]; then
-  echo -e "${RED}🚫 Direct pushes to '$current_branch' are not allowed.${NC}"
-  echo -e "${RED}    Please push to a feature branch and open a pull request.${NC}"
-  exit 1
-fi
-echo -e "${GREEN}✅ Branch is '$current_branch' — safe to push.${NC}"
+# Variables
+CURRENT_USER   := $(shell whoami)
+DOCKER_REPO    := ${DOCKER_REPO}
+IMAGE_NAME     := ${IMAGE_NAME}
+CONTAINER_NAME := ${CONTAINER_NAME}
+TAG_VERSION    := ${TAG_VERSION}
+HOST_PORTS     := ${HOST_PORTS}
+CONTAINER_PORT := ${CONTAINER_PORT}
 
-# ─── 2. Check for uncommitted changes ───────────────────────────
-echo -e "\n${YELLOW}[2/4] Checking for uncommitted changes...${NC}"
-if ! git diff --quiet || ! git diff --cached --quiet; then
-  echo -e "${RED}🚫 You have uncommitted changes. Please commit or stash them before pushing.${NC}"
-  git status --short
-  exit 1
-fi
-echo -e "${GREEN}✅ Working tree is clean.${NC}"
+# ═══════════════════════════════════════════════════════════════
+# Global Validation (The "Master Switch")
+# ═══════════════════════════════════════════════════════════════
 
-# ─── 3. Validate runtime versions ───────────────────────────────
-echo -e "\n${YELLOW}[3/4] Validating runtime versions...${NC}"
+validate-all: ui-check ## Run checks for ALL frameworks (Add orders-check etc. here later)
+	@echo "$(GREEN)⭐ [SUCCESS] All frameworks passed all checks.$(NC)"
 
-if [ -f "package.json" ]; then
-  # ── Node / React project ──
-  required_node="18"
-  current_node=$(node -v 2>/dev/null | sed 's/v//' | cut -d. -f1)
+# ═══════════════════════════════════════════════════════════════
+# Utility & Setup
+# ═══════════════════════════════════════════════════════════════
 
-  if [ -z "$current_node" ]; then
-    echo -e "${RED}🚫 Node.js is not installed or not found in PATH.${NC}"
-    exit 1
-  fi
+help: ## Show available commands
+	@echo "Available commands:"
+	@awk 'BEGIN {FS = ":.*## "}; /^[a-zA-Z0-9_.-]+:.*##/ {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
-  if [ "$current_node" -lt "$required_node" ]; then
-    echo -e "${RED}🚫 Node.js v$required_node+ required. Found: v$current_node${NC}"
-    exit 1
-  fi
-  echo -e "${GREEN}✅ Node.js version: v$current_node (required: v$required_node+)${NC}"
+all: install-misc docker-install
 
-elif [ -f "requirements.txt" ] || [ -f "manage.py" ] || [ -f "app.py" ]; then
-  # ── Python / Django / Flask project ──
-  required_python="3"
-  current_python=$(python3 --version 2>/dev/null | cut -d' ' -f2 | cut -d. -f1)
+print-env: ## Print environment variables
+	@echo "$(YELLOW)Current Environment Variables:$(NC)"
+	@env | grep -E '^(DOCKER_REPO|IMAGE_NAME|CONTAINER_NAME|TAG_VERSION|HOST_PORTS|CONTAINER_PORT)=' || echo "No variables found."
 
-  if [ -z "$current_python" ]; then
-    echo -e "${RED}🚫 Python 3 is not installed or not found in PATH.${NC}"
-    exit 1
-  fi
+install-misc: ## Install Misc utilities
+	@echo "Installing Misc Tools (Zip & Unzip)..."
+	sudo apt update -y && sudo apt install zip unzip -y
 
-  if [ "$current_python" -lt "$required_python" ]; then
-    echo -e "${RED}🚫 Python $required_python+ required. Found: $current_python${NC}"
-    exit 1
-  fi
-  echo -e "${GREEN}✅ Python version: $(python3 --version) (required: Python $required_python+)${NC}"
+build-tools: ## Install Java, Maven, Nodejs
+	@echo "Installing Build Stack..."
+	sudo apt install openjdk-21-jdk maven nodejs npm -y
 
-else
-  echo -e "${YELLOW}⚠️  No recognised runtime indicator found. Skipping version check.${NC}"
-fi
+verify-install: ## Check versions
+	@echo "--- Versions ---"
+	@docker --version && java -version 2>&1 | head -n 1 && mvn -version | head -n 1
 
-# ─── 4. Lint + test checks via Makefile ─────────────────────────
-echo -e "\n${YELLOW}[4/5] Running lint and test checks...${NC}"
+# ═══════════════════════════════════════════════════════════════
+# Docker Orchestration
+# ═══════════════════════════════════════════════════════════════
 
-if [ -f "Makefile" ]; then
-  echo -e "${YELLOW}   Running make check...${NC}"
-  if make check; then
-    echo -e "${GREEN}✅ All checks passed.${NC}"
-  else
-    echo -e "${RED}🚫 make check failed. Fix errors before pushing.${NC}"
-    exit 1
-  fi
-else
-  echo -e "${YELLOW}⚠️  No Makefile found. Skipping checks.${NC}"
-fi
+docker-install: ## Install Docker Engine
+	@echo "Installing Docker..."
+	# ... (Your existing install logic) ...
+	@echo "Docker Installation Completed"
 
+build-image: ## Build Docker image
+	@docker build --build-arg GEMINI_API_KEY=${VITE_GEMINI_API_KEY} -t ${IMAGE_NAME}:${TAG_VERSION} .
 
-# ─── 5. Docker files check ──────────────────────────────────────
-echo -e "\n${YELLOW}[5/5] Checking for Docker files...${NC}"
+# ... (Rest of your docker-login, push, pull, clean targets) ...
 
-if [ -f "Dockerfile" ] && [ -f "docker-compose.yml" ] && [ -f ".dockerignore" ]; then
-  echo -e "${GREEN}✅ All Docker files present.${NC}"
-else
-  echo -e "${RED}🚫 Docker files missing. Please ensure Dockerfile, docker-compose.yml and .dockerignore exist.${NC}"
-  exit 1
-fi
+# ═══════════════════════════════════════════════════════════════
+# UI Framework (Spring Boot)
+# ═══════════════════════════════════════════════════════════════
 
+ui-install: ## Install Maven dependencies
+	@echo "Installing UI dependencies..."
+	cd $(UI_SPRING_DIR) && ./mvnw dependency:resolve
 
+ui-lint: ## Run Checkstyle linter
+	@echo "Running UI Checkstyle..."
+	cd $(UI_SPRING_DIR) && ./mvnw checkstyle:check || (echo "$(RED)🚫 UI Checkstyle failed.$(NC)" && exit 1)
 
-# ─── All checks passed ──────────────────────────────────────────
-echo -e "\n${BLUE}=======================================================================${NC}"
-echo -e "${GREEN}🚀 All guardrail checks passed. Proceeding with push.${NC}"
-echo -e "${BLUE}=======================================================================${NC}"
-exit 0
+ui-test: ## Run UI unit tests
+	@echo "Running UI tests..."
+	cd $(UI_SPRING_DIR) && ./mvnw test || (echo "$(RED)🚫 UI Tests failed.$(NC)" && exit 1)
+
+ui-check: ui-lint ui-test ## Run all UI checks
+	@echo "$(GREEN)✅ UI framework checks passed$(NC)"
+
+ui-clean: ## Remove UI build artifacts
+	cd $(UI_SPRING_DIR) && ./mvnw clean

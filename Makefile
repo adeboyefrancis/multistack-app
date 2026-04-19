@@ -3,6 +3,18 @@
 		# Docker Targets
 		docker-install docker-login build-image run-container push-images pull-images docker-exec docker-clean
 
+		
+
+# ═══════════════════════════════════════════════════════════════
+# Settings & Paths
+# ═══════════════════════════════════════════════════════════════
+
+# Parent folder is React, backend is a subfolder
+UI_SPRING_DIR  := $(shell pwd)/src/ui
+
+
+
+
 # Colors for output
 YELLOW := \033[0;33m
 GREEN  := \033[0;32m
@@ -135,3 +147,40 @@ docker-clean: ## Stop Container && Remove Image
 	@echo "Removing Image from Local Host /var/lib/docker/image"
 	@docker rmi ${IMAGE_NAME}:${TAG_VERSION}
 	@echo "$(GREEN)✅ Docker cleanup complete$(NC)"
+
+
+# ═══════════════════════════════════════════════════════════════
+# Spring Boot Backend 
+# ═══════════════════════════════════════════════════════════════
+
+ui-install: ## Install Maven dependencies
+	@echo "Installing Maven dependencies...[1/6]"
+	cd $(UI_SPRING_DIR) && ./mvnw dependency:resolve
+	@echo "$(GREEN)✅ Dependencies installed$(NC)"
+
+ui-dev: ## Run Spring Boot in development mode
+	@echo "Starting Spring Boot server...[2/6]"
+	cd $(UI_SPRING_DIR) && ./mvnw spring-boot:run
+
+ui-build: ## Build the application JAR
+	@echo "Building Backend application...[3/6]"
+	cd $(UI_SPRING_DIR) && ./mvnw clean package -DskipTests
+	@echo "$(GREEN)✅ Build complete — output in target/$(NC)"
+
+ui-lint: ## Run Checkstyle linter
+	@echo "Running Checkstyle...[4/6]"
+	cd $(UI_SPRING_DIR) && ./mvnw checkstyle:check || (echo "$(RED)🚫 Checkstyle failed.$(NC)" && exit 1)
+	@echo "$(GREEN)✅ Linting complete$(NC)"
+
+ui-test: ## Run Spring Boot unit tests
+	@echo "Running Backend tests...[5/6]"
+	cd $(UI_SPRING_DIR) && ./mvnw test || (echo "$(RED)🚫 Tests failed.$(NC)" && exit 1)
+	@echo "$(GREEN)✅ Tests complete$(NC)"
+
+ui-check: ui-lint ui-test ## Run all Backend checks
+	@echo "$(GREEN)✅ All backend checks passed$(NC)"
+
+ui-clean: ## Remove Backend build artifacts
+	@echo "Cleaning Backend...[6/6]"
+	cd $(UI_SPRING_DIR) && ./mvnw clean
+	@echo "✅ Clean complete"
