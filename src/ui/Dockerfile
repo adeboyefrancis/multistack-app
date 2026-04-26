@@ -1,7 +1,7 @@
 # Build Stage
 FROM public.ecr.aws/amazonlinux/amazonlinux:2023 AS build-env
 
-RUN echo "Building Application...[1/2]"
+RUN echo "Building Application..."
 
 # We tell DNF not to install Recommends and Suggests packages, keeping our
 # installed set of packages as minimal as possible.
@@ -31,7 +31,7 @@ RUN ./mvnw -DskipTests package -q && \
 # Package Stage
 FROM public.ecr.aws/amazonlinux/amazonlinux:2023
 
-RUN echo "Packaging Application...[2/2]"
+RUN echo "Packaging Application..."
 
 # We tell DNF not to install Recommends and Suggests packages, which are
 # weak dependencies in DNF terminology, thus keeping our installed set of
