@@ -149,11 +149,11 @@ docker-clean: ## Stop Container && Remove Image
 
 # Remove Docker Container
 	@echo "Removing Container...."
-	@docker rm ${CONTAINER_NAME}
+	@docker rm -f ${CONTAINER_NAME} 2>/dev/null || true
 
 # Remove Docker Images
 	@echo "Removing Image from Local Host /var/lib/docker/image"
-	@docker rmi ${IMAGE_NAME}:${TAG_VERSION}
+	@docker rmi ${IMAGE_NAME}:${TAG_VERSION} 2>/dev/null || true
 	@echo "$(GREEN)✅ Docker cleanup complete$(NC)"
 
 
