@@ -31,6 +31,8 @@ endif
 CURRENT_USER   := $(shell whoami)
 DOCKER_REPO    := ${DOCKER_REPO}
 IMAGE_NAME     := ${IMAGE_NAME}
+MULTI_PLATFORM_IMAGE_NAME := ${MULTI_PLATFORM_IMAGE_NAME}
+DOCKER_DRIVER   := ${DOCKER_DRIVER}
 CONTAINER_NAME := ${CONTAINER_NAME}
 TAG_VERSION    := ${TAG_VERSION}
 HOST_PORTS     := ${HOST_PORTS}
@@ -192,3 +194,67 @@ ui-clean: ## Remove Backend build artifacts
 	@echo "Cleaning Backend...[6/6]"
 	cd $(UI_SPRING_DIR) && ./mvnw clean
 	@echo "✅ Clean complete"
+
+# ═════════════════════════════════════════════════════════════════════
+# Multi-Platform Using Docker Buildx (for ARM64 and AMD64 architectures)
+# ═════════════════════════════════════════════════════════════════════
+
+host-arch: ## Detect OS & Host Architecture (amd64 or arm64)
+	@echo "Detecting Host Architecture..."
+	@echo "OS Information:"
+	@cat /etc/os-release | sed -n '1,6p' 2>/dev/null || echo "OS info not available"
+	@echo "Host Architecture: $$(uname -m)"
+
+buildx-version: ## Check Docker Buildx Version
+	@echo "Checking Docker Buildx Version..."
+	@export DOCKER_BUILDKIT=1
+	@docker buildx version
+
+install-qemu-binfmt: ## Install QEMU binfmt Emulator for multi-platform builds
+	@echo "Installing QEMU binfmt for multi-platform builds..."
+	@docker run --privileged --rm tonistiigi/binfmt --install all
+
+buildx-create: ## Create multi-arch using Docker Buildx Builder   
+	@echo "Creating Docker Buildx Builder instance..."
+	@docker buildx create --name ${MULTI_PLATFORM_IMAGE_NAME} --driver ${DOCKER_DRIVER} --use || true
+
+buildx-inspect: ## Inspect Docker Buildx Builder instance
+	@echo "Inspecting Docker Buildx Builder instance..."
+	@docker buildx inspect ${MULTI_PLATFORM_IMAGE_NAME} --bootstrap
+
+buildx-list: ## List Docker Buildx Builder instances
+	@echo "Listing Docker Buildx Builder instances..."
+	@docker buildx ls
+
+buildx-build-push: ## Build and Push multi-arch image using Docker Buildx
+	@echo "Building and pushing multi-arch image using Docker Buildx..."
+	@docker buildx build --platform linux/amd64,linux/arm64 \
+		-t ${DOCKER_REPO}/${MULTI_PLATFORM_IMAGE_NAME}:${TAG_VERSION} --push $(UI_SPRING_DIR)
+
+buildx-manifest: ## Verify pushed multi-arch image manifest
+	@echo "Verifying pushed multi-arch image manifest..."
+	@docker buildx imagetools inspect ${DOCKER_REPO}/${MULTI_PLATFORM_IMAGE_NAME}:${TAG_VERSION}
+
+buildx-run-arm64: ## Run ARM64 image on AMD64 host using Buildx QEMU emulation
+	@echo "Cleaning existing ARM64 container..."
+	@docker rm -f ${CONTAINER_NAME}-arm64 2>/dev/null || true
+	@echo "Running ARM64 image on AMD64 host using Buildx QEMU emulation..."
+	@docker run --platform linux/arm64 \
+		-p ${HOST_PORTS}:${CONTAINER_PORT} \
+		--name ${CONTAINER_NAME}-arm64 -d \
+		${DOCKER_REPO}/${MULTI_PLATFORM_IMAGE_NAME}:${TAG_VERSION}
+
+buildx-run-amd64: ## Run AMD64 image on ARM64 host using Buildx QEMU emulation
+	@echo "Cleaning existing AMD64 container..."
+	@docker rm -f ${CONTAINER_NAME}-amd64 2>/dev/null || true
+	@echo "Running AMD64 image on ARM64 host using Buildx QEMU emulation..."
+	@docker run --platform linux/amd64 \
+		-p ${HOST_PORTS}:${CONTAINER_PORT} \
+		--name ${CONTAINER_NAME}-amd64 -d \
+		${DOCKER_REPO}/${MULTI_PLATFORM_IMAGE_NAME}:${TAG_VERSION}
+
+buildx-clean: ## Clean up Buildx builder and multi-arch images
+	@echo "Cleaning up Buildx builder and multi-arch images..."
+	@docker rm -f ${CONTAINER_NAME}-arm64 ${CONTAINER_NAME}-amd64 2>/dev/null || true
+	@docker buildx rm ${MULTI_PLATFORM_IMAGE_NAME} 2>/dev/null || true
+	@docker rmi ${DOCKER_REPO}/${MULTI_PLATFORM_IMAGE_NAME}:${TAG_VERSION} 2>/dev/null || true
