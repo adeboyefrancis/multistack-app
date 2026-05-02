@@ -4,6 +4,8 @@
 .PHONY: all print-env help install-misc build-tools verify-install \
         docker-install docker-login build-image run-container \
         push-images pull-images docker-exec docker-clean \
+		host-arch buildx-versioninstall-qemu-binfmt buildx-create buildx-inspect buildx-list \
+		buildx-build-push buildx-manifest buildx-run-arm64 buildx-run-amd64 buildx-clean \
         validate-all ui-check ui-install ui-dev ui-build ui-lint ui-test ui-clean
 
 # ═══════════════════════════════════════════════════════════════
